@@ -1,0 +1,24 @@
+# Vagrant
+.vagrant/
+
+# Node.js dependencies
+node_modules/
+npm-debug.log
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Development artifacts
+error.md
+IMPROVEMENTS.md

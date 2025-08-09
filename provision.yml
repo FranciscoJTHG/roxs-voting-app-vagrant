@@ -1,0 +1,71 @@
+---
+- hosts: all
+  become: true
+
+  vars_files:
+    - secrets.yml
+
+  handlers:
+    - name: Restart postgresql
+      service:
+        name: postgresql
+        state: restarted
+
+  tasks:
+    - name: Run provisioning tasks for Debian-based systems
+      block:
+        - name: Install required system packages
+          apt:
+            name:
+              - redis
+              - postgresql
+              - libpq-dev
+              - python3
+              - python3-pip
+              - python3-psycopg2
+              - nodejs
+              - npm
+              - tmux
+            state: present
+            update_cache: yes
+
+        - name: Start and enable PostgreSQL service
+          service:
+            name: postgresql
+            state: started
+            enabled: yes
+
+        - name: Wait for PostgreSQL to start accepting connections
+          wait_for:
+            port: 5432
+            host: 127.0.0.1
+            timeout: 60
+            state: started
+
+        - name: Configure PostgreSQL Database and User
+          become: true
+          become_user: postgres
+          block:
+            - name: Create the 'votes' database
+              community.postgresql.postgresql_db:
+                name: votes
+                state: present
+
+            - name: Set password for the 'postgres' user
+              community.postgresql.postgresql_user:
+                name: postgres
+                password: "{{ postgres_password }}"
+                state: present
+
+            - name: Allow password authentication from localhost
+              community.postgresql.postgresql_pg_hba:
+                dest: "/etc/postgresql/16/main/pg_hba.conf"
+                contype: "host"
+                databases: "all"
+                users: "all"
+                address: "127.0.0.1/32"
+                method: "scram-sha-256"
+                state: present
+              notify: Restart postgresql
+
+      when: ansible_os_family == "Debian"
